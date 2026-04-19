@@ -7,4 +7,4 @@ temperature: 0.0
 max_output_tokens: 1200
 timeout_seconds: 60
 max_retries: 1
-notes: Edit adapter, model, scenarios, and out before running.
+notes: Edit adapter, model, scenarios, and out before running `python -m lexcapital self-eval`.
