@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from typer.testing import CliRunner
 
-from finrulebench.agent_integration import (
+from lexcapital.agent_integration import (
     CURRENT_AGENT_ADAPTER,
     CURRENT_AGENT_MODEL,
     AgentEvalConfig,
@@ -16,7 +16,7 @@ from finrulebench.agent_integration import (
     save_agent_eval_request,
     write_agent_eval_template,
 )
-from finrulebench.cli import app
+from lexcapital.cli import app
 
 from .conftest import ROOT
 
@@ -34,8 +34,8 @@ def test_write_and_load_agent_eval_template(tmp_path: Path):
 
 
 def test_default_self_eval_config_infers_env(monkeypatch):
-    monkeypatch.setenv("FINRULEBENCH_AGENT_ADAPTER", "mock")
-    monkeypatch.setenv("FINRULEBENCH_AGENT_MODEL", "mock-hold")
+    monkeypatch.setenv("LEXCAPITAL_AGENT_ADAPTER", "mock")
+    monkeypatch.setenv("LEXCAPITAL_AGENT_MODEL", "mock-hold")
     cfg = default_self_eval_config()
     assert cfg.adapter == "mock"
     assert cfg.model == "mock-hold"
@@ -66,8 +66,8 @@ def test_agent_eval_cli_writes_request_and_prints_summary(tmp_path: Path, monkey
         out_path.mkdir(parents=True, exist_ok=True)
         (out_path / "suite_summary.json").write_text(json.dumps({"overall_score": 12.34}), encoding="utf-8")
 
-    monkeypatch.setattr("finrulebench.cli.run_suite_impl", fake_run_suite)
-    monkeypatch.setattr("finrulebench.cli.build_leaderboard", lambda path: {"overall_score": 12.34})
+    monkeypatch.setattr("lexcapital.cli.run_suite_impl", fake_run_suite)
+    monkeypatch.setattr("lexcapital.cli.build_leaderboard", lambda path: {"overall_score": 12.34})
 
     result = runner.invoke(app, ["agent-eval", "--config", str(config_path)])
     assert result.exit_code == 0
@@ -76,16 +76,16 @@ def test_agent_eval_cli_writes_request_and_prints_summary(tmp_path: Path, monkey
 
 
 def test_self_eval_cli_uses_env_and_writes_request(tmp_path: Path, monkeypatch):
-    monkeypatch.setenv("FINRULEBENCH_AGENT_ADAPTER", "mock")
-    monkeypatch.setenv("FINRULEBENCH_AGENT_MODEL", "mock-hold")
+    monkeypatch.setenv("LEXCAPITAL_AGENT_ADAPTER", "mock")
+    monkeypatch.setenv("LEXCAPITAL_AGENT_MODEL", "mock-hold")
 
     def fake_run_suite(scenarios, adapter_obj, run_config, out):
         out_path = Path(out)
         out_path.mkdir(parents=True, exist_ok=True)
         (out_path / "suite_summary.json").write_text(json.dumps({"overall_score": 7.89}), encoding="utf-8")
 
-    monkeypatch.setattr("finrulebench.cli.run_suite_impl", fake_run_suite)
-    monkeypatch.setattr("finrulebench.cli.build_leaderboard", lambda path: {"overall_score": 7.89})
+    monkeypatch.setattr("lexcapital.cli.run_suite_impl", fake_run_suite)
+    monkeypatch.setattr("lexcapital.cli.build_leaderboard", lambda path: {"overall_score": 7.89})
 
     out_dir = tmp_path / "self_eval"
     result = runner.invoke(
