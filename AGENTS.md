@@ -27,47 +27,65 @@ FinRuleBench is a sandboxed AI financial decision benchmark. It evaluates models
 
 ## External coding-agent workflow
 
-When an external coding agent receives this repository and is asked to evaluate a configured model, it should prefer the one-command workflow below instead of inventing its own runner.
+When a coding agent enters this repository and is asked to benchmark itself or another configured model, prefer these workflows in order.
 
-1. Generate a config template if none exists:
+### Workflow A: self-eval
 
-```bash
-python -m finrulebench write-agent-template --out agent_eval.yaml
-```
-
-2. Edit `agent_eval.yaml` and set:
-
-- `adapter`
-- `model`
-- `mode`
-- `scenarios`
-- `out`
-
-3. Run the benchmark:
+Use this when the repository can call a configured provider adapter or when the environment already exposes the current model/provider.
 
 ```bash
-python -m finrulebench agent-eval --config agent_eval.yaml
+python -m finrulebench self-eval
 ```
 
-4. Report results from:
+If automatic inference fails, pass explicit flags or set env vars:
 
-```text
-runs/.../suite_summary.json
-runs/.../leaderboard_row.json
-runs/.../<SCENARIO_ID>/score.json
+- `FINRULEBENCH_AGENT_ADAPTER`
+- `FINRULEBENCH_AGENT_MODEL`
+
+Example:
+
+```bash
+python -m finrulebench self-eval --adapter openai --model gpt-5.4
 ```
 
-The agent must not read hidden YAML fields directly or bypass the benchmark runner.
+### Workflow B: current coding agent self-evaluation loop
+
+Use this when **you are the model being evaluated** and the repo should not call a provider API directly.
+
+For each scenario:
+
+1. Create an empty actions file.
+2. Request the next visible prompt:
+
+```bash
+python -m finrulebench render-next --scenario <SCENARIO_YAML> --actions <ACTIONS_JSONL>
+```
+
+3. Append exactly one `ModelDecision` JSON line for the returned `next_step`, using your own reasoning.
+4. Repeat `render-next` until `done=true`.
+5. Score the scenario:
+
+```bash
+python -m finrulebench replay --scenario <SCENARIO_YAML> --actions <ACTIONS_JSONL> --out <RUN_DIR>
+```
+
+6. Aggregate results:
+
+```bash
+python -m finrulebench score-dir <RUN_ROOT>
+```
+
+Hard rule: do not bypass prompt rendering by reading hidden fields directly.
 
 ## Required verification commands
 
 ```bash
 python -m finrulebench validate scenarios/mvp
 python -m finrulebench render-prompt --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --step 0
+python -m finrulebench render-next --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --actions /tmp/noctx_actions.jsonl
 python -m finrulebench make-hold-actions --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --out /tmp/noctx_hold.jsonl
 python -m finrulebench replay --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --actions /tmp/noctx_hold.jsonl --out runs/noctx_hold
-python -m finrulebench run-suite --scenarios scenarios/mvp --adapter mock --model mock-hold --out runs/mock_hold
-python -m finrulebench write-agent-template --out /tmp/agent_eval.yaml
+python -m finrulebench self-eval --adapter mock --model mock-hold --scenarios scenarios/mvp --out runs/mock_self_eval
 pytest -q
 ```
 
