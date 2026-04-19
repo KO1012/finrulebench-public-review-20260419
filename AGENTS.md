@@ -1,8 +1,8 @@
-# FinRuleBench Agent Instructions
+# lexcapital Agent Instructions
 
 ## Project purpose
 
-FinRuleBench is a sandboxed AI financial decision benchmark. It evaluates models on simulated trading scenarios with legal-style rules, hidden traps, risk constraints, and deterministic scoring.
+lexcapital is a sandboxed AI financial decision benchmark. It evaluates models on simulated trading scenarios with legal-style rules, hidden traps, risk constraints, and deterministic scoring.
 
 ## Non-negotiable safety rules
 
@@ -34,18 +34,18 @@ When a coding agent enters this repository and is asked to benchmark itself or a
 Use this when the repository can call a configured provider adapter or when the environment already exposes the current model/provider.
 
 ```bash
-python -m finrulebench self-eval
+python -m lexcapital self-eval
 ```
 
 If automatic inference fails, pass explicit flags or set env vars:
 
-- `FINRULEBENCH_AGENT_ADAPTER`
-- `FINRULEBENCH_AGENT_MODEL`
+- `LEXCAPITAL_AGENT_ADAPTER`
+- `LEXCAPITAL_AGENT_MODEL`
 
 Example:
 
 ```bash
-python -m finrulebench self-eval --adapter openai --model gpt-5.4
+python -m lexcapital self-eval --adapter openai --model gpt-5.4
 ```
 
 ### Workflow B: current coding agent self-evaluation loop
@@ -58,7 +58,7 @@ For each scenario:
 2. Request the next visible prompt:
 
 ```bash
-python -m finrulebench render-next --scenario <SCENARIO_YAML> --actions <ACTIONS_JSONL>
+python -m lexcapital render-next --scenario <SCENARIO_YAML> --actions <ACTIONS_JSONL>
 ```
 
 3. Append exactly one `ModelDecision` JSON line for the returned `next_step`, using your own reasoning.
@@ -66,13 +66,13 @@ python -m finrulebench render-next --scenario <SCENARIO_YAML> --actions <ACTIONS
 5. Score the scenario:
 
 ```bash
-python -m finrulebench replay --scenario <SCENARIO_YAML> --actions <ACTIONS_JSONL> --out <RUN_DIR>
+python -m lexcapital replay --scenario <SCENARIO_YAML> --actions <ACTIONS_JSONL> --out <RUN_DIR>
 ```
 
 6. Aggregate results:
 
 ```bash
-python -m finrulebench score-dir <RUN_ROOT>
+python -m lexcapital score-dir <RUN_ROOT>
 ```
 
 Hard rule: do not bypass prompt rendering by reading hidden fields directly.
@@ -80,12 +80,12 @@ Hard rule: do not bypass prompt rendering by reading hidden fields directly.
 ## Required verification commands
 
 ```bash
-python -m finrulebench validate scenarios/mvp
-python -m finrulebench render-prompt --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --step 0
-python -m finrulebench render-next --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --actions /tmp/noctx_actions.jsonl
-python -m finrulebench make-hold-actions --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --out /tmp/noctx_hold.jsonl
-python -m finrulebench replay --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --actions /tmp/noctx_hold.jsonl --out runs/noctx_hold
-python -m finrulebench self-eval --adapter mock --model mock-hold --scenarios scenarios/mvp --out runs/mock_self_eval
+python -m lexcapital validate scenarios/mvp
+python -m lexcapital render-prompt --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --step 0
+python -m lexcapital render-next --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --actions /tmp/noctx_actions.jsonl
+python -m lexcapital make-hold-actions --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --out /tmp/noctx_hold.jsonl
+python -m lexcapital replay --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --actions /tmp/noctx_hold.jsonl --out runs/noctx_hold
+python -m lexcapital self-eval --adapter mock --model mock-hold --scenarios scenarios/mvp --out runs/mock_self_eval
 pytest -q
 ```
 
