@@ -1,0 +1,10 @@
+adapter: openai
+model: gpt-5.4
+mode: agent
+scenarios: scenarios/mvp
+out: runs/gpt_5_4_agent
+temperature: 0.0
+max_output_tokens: 1200
+timeout_seconds: 60
+max_retries: 1
+notes: Edit adapter, model, scenarios, and out before running.
