@@ -12,10 +12,13 @@ from finrulebench.adapters.mock_adapter import MockAdapter
 from finrulebench.adapters.openai_responses import OpenAIResponsesAdapter
 from finrulebench.adapters.utils import default_hold_decision, parse_model_decision
 from finrulebench.agent_integration import (
+    config_has_placeholders,
+    default_self_eval_config,
     load_agent_eval_config,
     save_agent_eval_request,
     write_agent_eval_template,
 )
+from finrulebench.core.execution import execute_decision
 from finrulebench.core.hashing import canonical_json
 from finrulebench.core.leaderboard import build_leaderboard
 from finrulebench.core.portfolio import Portfolio
@@ -78,6 +81,42 @@ def _run_config(
     )
 
 
+def _load_existing_decisions(actions_path: Path, max_steps: int):
+    decisions = {}
+    if not actions_path.exists():
+        return decisions
+    with actions_path.open("r", encoding="utf-8") as f:
+        for line_number, raw_line in enumerate(f):
+            raw_line = raw_line.strip()
+            if not raw_line:
+                continue
+            try:
+                payload = json.loads(raw_line)
+                step = int(payload.get("step", line_number)) if isinstance(payload, dict) else line_number
+                if step < 0 or step >= max_steps:
+                    step = min(line_number, max_steps - 1)
+                decisions[step] = parse_model_decision(payload, step)
+            except Exception:
+                continue
+    return decisions
+
+
+def _next_prompt_from_actions(scenario_path: str, actions_path: Path):
+    scenario = load_scenario(scenario_path)
+    decisions = _load_existing_decisions(actions_path, scenario.max_steps)
+    portfolio = Portfolio(scenario.starting_cash)
+    for step in range(scenario.max_steps):
+        prices = scenario.timeline[step].visible.get("prices", {})
+        if step not in decisions:
+            state = portfolio.state(step, prices)
+            prompt = render_model_prompt(scenario, step, state)
+            return {"done": False, "next_step": step, "prompt": prompt}
+        decision = decisions[step]
+        execute_decision(scenario, portfolio, decision, step)
+        portfolio.mark_to_market(step, prices)
+    return {"done": True, "next_step": None, "prompt": None}
+
+
 @app.command()
 def validate(paths: list[str] = typer.Argument(...)):
     count = 0
@@ -98,6 +137,21 @@ def render_prompt(
         loaded, step, portfolio.state(step, loaded.timeline[step].visible.get("prices", {}))
     )
     typer.echo(json.dumps(prompt, ensure_ascii=False, indent=2))
+
+
+@app.command("render-next")
+def render_next(
+    scenario: str = typer.Option(..., "--scenario"),
+    actions: str = typer.Option(..., "--actions"),
+    create_if_missing: bool = typer.Option(True, "--create-if-missing/--no-create-if-missing"),
+):
+    actions_path = Path(actions)
+    if create_if_missing:
+        actions_path.parent.mkdir(parents=True, exist_ok=True)
+        if not actions_path.exists():
+            actions_path.write_text("", encoding="utf-8")
+    payload = _next_prompt_from_actions(scenario, actions_path)
+    typer.echo(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
 @app.command()
@@ -144,6 +198,66 @@ def agent_eval(
     config: str = typer.Option(..., "--config"),
 ):
     cfg = load_agent_eval_config(config)
+    if config_has_placeholders(cfg):
+        raise typer.BadParameter(
+            "agent_eval config still contains __CURRENT_AGENT_*__ placeholders. "
+            "Replace them or use `python -m finrulebench self-eval ...`."
+        )
+    run_config = _run_config(
+        cfg.model,
+        cfg.adapter,
+        cfg.mode,
+        cfg.temperature,
+        cfg.max_output_tokens,
+        cfg.timeout_seconds,
+        cfg.max_retries,
+        cfg.base_url,
+    )
+    adapter_obj = _adapter_from_name(
+        cfg.adapter,
+        cfg.model,
+        file_path=cfg.file_path,
+        base_url=cfg.base_url,
+    )
+    save_agent_eval_request(cfg, cfg.out)
+    run_suite_impl(cfg.scenarios, adapter_obj, run_config, cfg.out)
+    summary = build_leaderboard(cfg.out)
+    typer.echo(json.dumps(summary, indent=2))
+
+
+@app.command("self-eval")
+def self_eval(
+    adapter: str | None = typer.Option(None, "--adapter"),
+    model: str | None = typer.Option(None, "--model"),
+    scenarios: str = typer.Option("scenarios/mvp", "--scenarios"),
+    out: str | None = typer.Option(None, "--out"),
+    file_path: str | None = typer.Option(None, "--file-path"),
+    base_url: str | None = typer.Option(None, "--base-url"),
+    mode: str = typer.Option("agent", "--mode"),
+    temperature: float = typer.Option(0.0, "--temperature"),
+    max_output_tokens: int = typer.Option(1200, "--max-output-tokens"),
+    timeout_seconds: int = typer.Option(60, "--timeout-seconds"),
+    max_retries: int = typer.Option(1, "--max-retries"),
+):
+    cfg = default_self_eval_config(
+        adapter=adapter,
+        model=model,
+        mode=mode,
+        scenarios=scenarios,
+        out=out,
+        file_path=file_path,
+        base_url=base_url,
+        temperature=temperature,
+        max_output_tokens=max_output_tokens,
+        timeout_seconds=timeout_seconds,
+        max_retries=max_retries,
+    )
+    if config_has_placeholders(cfg):
+        raise typer.BadParameter(
+            "Could not infer the current coding agent's provider/model. "
+            "Pass --adapter/--model, or set FINRULEBENCH_AGENT_ADAPTER and FINRULEBENCH_AGENT_MODEL. "
+            "If you want to evaluate the current coding agent without a provider API, use the render-next loop documented in AGENTS.md."
+        )
     run_config = _run_config(
         cfg.model,
         cfg.adapter,
