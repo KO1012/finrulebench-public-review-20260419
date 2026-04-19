@@ -1,6 +1,6 @@
 ---
 name: benchmark-evaluator
-description: Use this skill when you are asked to run FinRuleBench against a configured model or to evaluate the current coding agent.
+description: Use this skill when you are asked to run lexcapital against a configured model or to evaluate the current coding agent.
 ---
 
 When evaluating with this repository, prefer these workflows in order.
@@ -10,17 +10,17 @@ When evaluating with this repository, prefer these workflows in order.
 Use this when the repository can call a configured provider adapter or when the environment already exposes the current model/provider.
 
 ```bash
-python -m finrulebench self-eval
+python -m lexcapital self-eval
 ```
 
 If inference fails, pass explicit flags or set env vars:
-- `FINRULEBENCH_AGENT_ADAPTER`
-- `FINRULEBENCH_AGENT_MODEL`
+- `LEXCAPITAL_AGENT_ADAPTER`
+- `LEXCAPITAL_AGENT_MODEL`
 
 Example:
 
 ```bash
-python -m finrulebench self-eval --adapter openai --model gpt-5.4
+python -m lexcapital self-eval --adapter openai --model gpt-5.4
 ```
 
 ## Workflow B: current coding agent self-evaluation
@@ -33,7 +33,7 @@ For each scenario:
 2. Request the next visible prompt:
 
 ```bash
-python -m finrulebench render-next --scenario <SCENARIO_YAML> --actions <ACTIONS_JSONL>
+python -m lexcapital render-next --scenario <SCENARIO_YAML> --actions <ACTIONS_JSONL>
 ```
 
 3. Append exactly one `ModelDecision` JSON line for the returned `next_step` using your own reasoning.
@@ -41,13 +41,13 @@ python -m finrulebench render-next --scenario <SCENARIO_YAML> --actions <ACTIONS
 5. Score with:
 
 ```bash
-python -m finrulebench replay --scenario <SCENARIO_YAML> --actions <ACTIONS_JSONL> --out <RUN_DIR>
+python -m lexcapital replay --scenario <SCENARIO_YAML> --actions <ACTIONS_JSONL> --out <RUN_DIR>
 ```
 
 6. Aggregate with:
 
 ```bash
-python -m finrulebench score-dir <RUN_ROOT>
+python -m lexcapital score-dir <RUN_ROOT>
 ```
 
 Hard rules:
