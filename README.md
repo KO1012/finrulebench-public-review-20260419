@@ -1,6 +1,6 @@
-# FinRuleBench
+# lexcapital
 
-FinRuleBench is a sandboxed financial reasoning benchmark for AI models.
+lexcapital is a sandboxed financial reasoning benchmark for AI models.
 
 ## Principles
 
@@ -19,10 +19,10 @@ python -m pip install -e ".[dev]"
 ## Minimal demo
 
 ```bash
-python -m finrulebench validate scenarios/mvp
-python -m finrulebench render-prompt --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --step 0
-python -m finrulebench run-suite --scenarios scenarios/mvp --adapter mock --model mock-hold --out runs/mock_hold
-python -m finrulebench score-dir runs/mock_hold
+python -m lexcapital validate scenarios/mvp
+python -m lexcapital render-prompt --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --step 0
+python -m lexcapital run-suite --scenarios scenarios/mvp --adapter mock --model mock-hold --out runs/mock_hold
+python -m lexcapital score-dir runs/mock_hold
 pytest -q
 ```
 
@@ -36,20 +36,20 @@ pytest -q
 
 ## Safety boundary
 
-FinRuleBench does **not** connect to real broker APIs, exchanges, wallets, or live trading systems.
+lexcapital does **not** connect to real broker APIs, exchanges, wallets, or live trading systems.
 
 ## Core commands
 
-- `python -m finrulebench validate scenarios/mvp`
-- `python -m finrulebench render-prompt --scenario ... --step 0`
-- `python -m finrulebench render-next --scenario ... --actions ...`
-- `python -m finrulebench make-hold-actions --scenario ... --out /tmp/hold.jsonl`
-- `python -m finrulebench replay --scenario ... --actions ... --out runs/example`
-- `python -m finrulebench run-suite --scenarios scenarios/mvp --adapter mock --model mock-hold --out runs/mock_hold`
-- `python -m finrulebench score-dir runs/mock_hold`
-- `python -m finrulebench write-agent-template --out agent_eval.example.yaml`
-- `python -m finrulebench agent-eval --config agent_eval.example.yaml`
-- `python -m finrulebench self-eval`
+- `python -m lexcapital validate scenarios/mvp`
+- `python -m lexcapital render-prompt --scenario ... --step 0`
+- `python -m lexcapital render-next --scenario ... --actions ...`
+- `python -m lexcapital make-hold-actions --scenario ... --out /tmp/hold.jsonl`
+- `python -m lexcapital replay --scenario ... --actions ... --out runs/example`
+- `python -m lexcapital run-suite --scenarios scenarios/mvp --adapter mock --model mock-hold --out runs/mock_hold`
+- `python -m lexcapital score-dir runs/mock_hold`
+- `python -m lexcapital write-agent-template --out agent_eval.example.yaml`
+- `python -m lexcapital agent-eval --config agent_eval.example.yaml`
+- `python -m lexcapital self-eval`
 
 ## Agent integration
 
@@ -60,17 +60,17 @@ There are now two supported workflows for external coding agents.
 Use this when the repository should call a configured provider adapter such as OpenAI or a local OpenAI-compatible endpoint.
 
 ```bash
-python -m finrulebench self-eval \
+python -m lexcapital self-eval \
   --adapter openai \
   --model gpt-5.4 \
   --scenarios scenarios/mvp \
   --out runs/gpt_5_4_self_eval
 ```
 
-If your environment already exports `FINRULEBENCH_AGENT_ADAPTER` and `FINRULEBENCH_AGENT_MODEL`, the coding agent can often just run:
+If your environment already exports `LEXCAPITAL_AGENT_ADAPTER` and `LEXCAPITAL_AGENT_MODEL`, the coding agent can often just run:
 
 ```bash
-python -m finrulebench self-eval
+python -m lexcapital self-eval
 ```
 
 ### 2) Current coding agent self-evaluation
@@ -83,7 +83,7 @@ The loop is:
 2. Ask for the next visible prompt:
 
 ```bash
-python -m finrulebench render-next \
+python -m lexcapital render-next \
   --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml \
   --actions runs/self_eval/NOCTX-001/actions.jsonl
 ```
@@ -93,7 +93,7 @@ python -m finrulebench render-next \
 5. Score the scenario:
 
 ```bash
-python -m finrulebench replay \
+python -m lexcapital replay \
   --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml \
   --actions runs/self_eval/NOCTX-001/actions.jsonl \
   --out runs/self_eval/NOCTX-001
@@ -102,7 +102,7 @@ python -m finrulebench replay \
 6. Aggregate all scenario scores with:
 
 ```bash
-python -m finrulebench score-dir runs/self_eval
+python -m lexcapital score-dir runs/self_eval
 ```
 
 This makes the repository usable even when the coding agent cannot expose its current model/provider to the benchmark code directly.
@@ -117,9 +117,9 @@ Prompt rendering uses an explicit allowlist. Hidden oracle text, trap conditions
 
 ## Adding scenarios
 
-Write YAML under `scenarios/mvp/` using the schema in `src/finrulebench/core/models.py`, then run:
+Write YAML under `scenarios/mvp/` using the schema in `src/lexcapital/core/models.py`, then run:
 
 ```bash
-python -m finrulebench validate scenarios/mvp
+python -m lexcapital validate scenarios/mvp
 pytest -q
 ```
