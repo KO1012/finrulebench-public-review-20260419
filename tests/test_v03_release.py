@@ -30,6 +30,9 @@ def test_mvp_pack_has_complete_v03_metadata_and_sidecars():
     assert report["oracle_paths_found"] == 14
     assert report["red_paths_found"] == 14
     assert report["red_path_trigger_rate"] == 1.0
+    for entry in report["scenarios"]:
+        assert "oracle_score_not_above_hold" not in entry["warnings"], entry["scenario_id"]
+        assert entry["oracle_replay"]["scenario_score"] > entry["hold_baseline"]["scenario_score"], entry["scenario_id"]
 
 
 def test_run_baseline_cli_writes_replayable_results(tmp_path):
