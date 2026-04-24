@@ -24,6 +24,7 @@ from lexcapital.core.hashing import canonical_json
 from lexcapital.core.leaderboard import build_leaderboard
 from lexcapital.core.portfolio import Portfolio
 from lexcapital.core.prompt_renderer import render_model_prompt
+from lexcapital.core.publish_gate import publish_check as publish_check_impl
 from lexcapital.core.replay import replay_scenario
 from lexcapital.core.scenario_loader import load_scenario, load_scenarios_dir
 from lexcapital.policies.baseline_hold import make_hold_decisions
@@ -31,6 +32,7 @@ from lexcapital.runners.agent_runner import (
     collect_agent_actions_for_scenario,
     run_and_replay_agent_scenario,
 )
+from lexcapital.runners.baseline_runner import run_baseline as run_baseline_impl
 from lexcapital.runners.policy_runner import collect_actions_for_scenario, run_and_replay_scenario
 from lexcapital.runners.run_config import RunConfig
 from lexcapital.runners.suite_runner import run_suite as run_suite_impl
@@ -292,6 +294,28 @@ def self_eval(
     run_suite_impl(cfg.scenarios, adapter_obj, run_config, cfg.out)
     summary = build_leaderboard(cfg.out)
     typer.echo(json.dumps(summary, indent=2))
+
+
+@app.command("run-baseline")
+def run_baseline(
+    policy: str = typer.Option("hold", "--policy"),
+    scenarios: str = typer.Option(..., "--scenarios"),
+    out: str = typer.Option("runs/baselines/hold", "--out"),
+    seed: int | None = typer.Option(None, "--seed"),
+):
+    summary = run_baseline_impl(policy, scenarios, out, seed=seed)
+    typer.echo(json.dumps(summary, indent=2))
+
+
+@app.command("publish-check")
+def publish_check(
+    scenarios: str = typer.Option(..., "--scenarios"),
+    out: str = typer.Option("audits/publish", "--out"),
+):
+    report = publish_check_impl(scenarios, out)
+    typer.echo(json.dumps(report, ensure_ascii=False, indent=2))
+    if report["status"] != "pass":
+        raise typer.Exit(1)
 
 
 @app.command("collect-actions")

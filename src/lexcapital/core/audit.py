@@ -324,10 +324,24 @@ def audit_scenario(
     if ActionType.HOLD not in scenario.allowed_actions:
         entry["errors"].append("HOLD is not in allowed_actions")
 
+    missing_metadata = []
+    if not scenario.expected_skill:
+        missing_metadata.append("expected_skill")
+    if not scenario.trap_type:
+        missing_metadata.append("trap_type")
+    if not scenario.baseline_expectations:
+        missing_metadata.append("baseline_expectations")
+    elif not scenario.baseline_expectations.get("red_path_must_trigger"):
+        missing_metadata.append("baseline_expectations.red_path_must_trigger")
+    entry["metadata_complete"] = not missing_metadata
+    entry["missing_metadata"] = missing_metadata
+    for field in missing_metadata:
+        entry["warnings"].append(f"missing_metadata:{field}")
+
     if scenario.data_mode.value != "synthetic" and not scenario.provenance:
         entry["errors"].append("non-synthetic scenario is missing provenance")
-
     if run_replays:
+
         with tempfile.TemporaryDirectory(prefix="lexcapital_audit_") as tmp:
             tmp_root = Path(tmp)
             run_root = Path(out_dir) / "replays" if out_dir else tmp_root / "replays"
@@ -438,6 +452,8 @@ def audit_scenarios(
             if red_runs
             else None
         ),
+        "metadata_complete_count": sum(1 for entry in scenarios if entry.get("metadata_complete")),
+        "metadata_missing_count": sum(1 for entry in scenarios if not entry.get("metadata_complete")),
         "difficulty_balance": _counter_to_dict(difficulty_counter),
         "category_balance": _counter_to_dict(category_counter),
         "data_mode_balance": _counter_to_dict(data_mode_counter),

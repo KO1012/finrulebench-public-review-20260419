@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from lexcapital.core.leaderboard import build_leaderboard
+from lexcapital.core.manifest import build_run_manifest, write_run_manifest
 from lexcapital.runners.agent_runner import run_and_replay_agent_scenario
 from lexcapital.runners.policy_runner import run_and_replay_scenario
 
@@ -23,6 +24,10 @@ def run_suite(scenarios_dir: str, adapter, run_config, out_dir: str) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     (out / "run_config.json").write_text(run_config.model_dump_json(indent=2), encoding="utf-8")
+    write_run_manifest(
+        out,
+        build_run_manifest(scenarios_dir, run_config, adapter=adapter, mode=run_config.mode),
+    )
     (out / "model_card.json").write_text(
         json.dumps(
             {

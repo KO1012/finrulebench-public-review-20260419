@@ -22,6 +22,8 @@ python -m pip install -e ".[dev]"
 python -m lexcapital validate scenarios/mvp
 python -m lexcapital render-prompt --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --step 0
 python -m lexcapital run-suite --scenarios scenarios/mvp --adapter mock --model mock-hold --out runs/mock_hold
+python -m lexcapital run-baseline --policy rule-aware --scenarios scenarios/mvp --out runs/baselines/rule_aware
+python -m lexcapital publish-check --scenarios scenarios/mvp --out audits/publish_mvp
 python -m lexcapital score-dir runs/mock_hold
 pytest -q
 ```
@@ -46,6 +48,10 @@ lexcapital does **not** connect to real broker APIs, exchanges, wallets, or live
 - `python -m lexcapital make-hold-actions --scenario ... --out /tmp/hold.jsonl`
 - `python -m lexcapital replay --scenario ... --actions ... --out runs/example`
 - `python -m lexcapital run-suite --scenarios scenarios/mvp --adapter mock --model mock-hold --out runs/mock_hold`
+- `python -m lexcapital run-baseline --policy hold --scenarios scenarios/mvp --out runs/baselines/hold`
+- `python -m lexcapital run-baseline --policy random-valid --seed 42 --scenarios scenarios/mvp --out runs/baselines/random_valid`
+- `python -m lexcapital run-baseline --policy rule-aware --scenarios scenarios/mvp --out runs/baselines/rule_aware`
+- `python -m lexcapital publish-check --scenarios scenarios/mvp --out audits/publish_mvp`
 - `python -m lexcapital score-dir runs/mock_hold`
 - `python -m lexcapital write-agent-template --out agent_eval.example.yaml`
 - `python -m lexcapital agent-eval --config agent_eval.example.yaml`
@@ -126,20 +132,20 @@ pytest -q
 ```
 
 
-## Phase-2 scenario audit
+## v0.3 scenario audit and publish gate
 
-Use the audit command before expanding the benchmark or publishing a run:
+Use the audit and publish-check commands before expanding the benchmark or publishing a run:
 
 ```bash
-python -m lexcapital audit-scenarios --scenarios scenarios/mvp --out audits/mvp
-python -m lexcapital audit-scenarios --scenarios scenarios_extended --out audits/extended --strict
+python -m lexcapital audit-scenarios --scenarios scenarios/mvp --out audits/mvp_v0.3 --strict
+python -m lexcapital publish-check --scenarios scenarios/mvp --out audits/publish_mvp_v0.3
 ```
 
-The audit checks hidden-field leakage, HOLD replay safety, optional oracle/red sidecars, provenance coverage, and category/difficulty/trap balance. It writes `audit_report.json` and `audit_summary.md` under the requested output directory.
+The audit checks hidden-field leakage, HOLD replay safety, oracle/red sidecars, metadata coverage, provenance coverage, and category/difficulty/trap balance. It writes `audit_report.json` and `audit_summary.md`; publish-check writes `publish_report.json` and `publish_summary.md`.
 
-## Phase-2 docs
+## v0.3 docs
 
-- `docs/benchmark_spec_v0.2.md`
+- `docs/benchmark_spec_v0.3.md`
 - `docs/scenario_authoring_guide.md`
 - `docs/eval_protocol.md`
 - `docs/scoring_rubric.md`
