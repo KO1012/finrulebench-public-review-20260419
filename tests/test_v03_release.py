@@ -17,10 +17,11 @@ def run_cli(*args, tmp_path=None):
     )
 
 
-def test_v03_package_version_is_coherent():
+def test_release_package_version_is_coherent():
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    assert 'version = "0.3.0"' in pyproject
+    assert 'version = "0.4.0"' in pyproject
     assert (ROOT / "docs" / "benchmark_spec_v0.3.md").exists()
+    assert (ROOT / "docs" / "benchmark_spec_v0.4.md").exists()
 
 
 def test_mvp_pack_has_complete_v03_metadata_and_sidecars():
@@ -78,7 +79,7 @@ def test_run_suite_writes_reproducible_manifest(tmp_path):
     )
     assert result.returncode == 0, result.stderr
     manifest = json.loads((out / "run_manifest.json").read_text(encoding="utf-8"))
-    assert manifest["package_version"] == "0.3.0"
+    assert manifest["package_version"] == "0.4.0"
     assert manifest["scenario_count"] == 14
     assert manifest["scenario_hashes"]
     assert manifest["run_config"]["model_name"] == "mock-hold"

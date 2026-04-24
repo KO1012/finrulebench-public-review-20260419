@@ -25,7 +25,45 @@ def _write_decisions(path: Path, decisions: list[ModelDecision]) -> None:
             handle.write(json.dumps(decision.model_dump(mode="json"), sort_keys=True) + "\n")
 
 
-def _factory(policy: str, seed: int | None = None) -> PolicyFactory:
+def _actions_sidecar_path(scenario_path: Path) -> Path:
+    return scenario_path.parent / "actions" / f"{scenario_path.stem}_oracle.jsonl"
+
+
+def _load_sidecar_decisions(path: Path) -> list[ModelDecision]:
+    decisions: list[ModelDecision] = []
+    if not path.exists():
+        return decisions
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            decisions.append(ModelDecision.model_validate_json(line))
+    return decisions
+
+
+def _risk_aware_decisions(scenario: Scenario) -> list[ModelDecision]:
+    """Conservative rule-aware baseline for v0.4 leaderboard calibration."""
+    decisions = make_rule_aware_decisions(scenario)
+    for decision in decisions:
+        decision.confidence = min(decision.confidence, 0.72)
+        decision.metadata["baseline_policy"] = "risk-aware"
+        decision.metadata.setdefault("risk_posture", "conservative")
+    return decisions
+
+
+def _oracle_lite_decisions(scenario: Scenario, scenario_path: Path | None = None) -> list[ModelDecision]:
+    """Replay public release oracle sidecars when available; otherwise fall back safely."""
+    if scenario_path is not None:
+        decisions = _load_sidecar_decisions(_actions_sidecar_path(scenario_path))
+        if decisions:
+            for decision in decisions:
+                decision.metadata["baseline_policy"] = "oracle-lite"
+            return decisions
+    decisions = make_rule_aware_decisions(scenario)
+    for decision in decisions:
+        decision.metadata["baseline_policy"] = "oracle-lite-fallback"
+    return decisions
+
+
+def _factory(policy: str, seed: int | None = None, scenario_path: Path | None = None) -> PolicyFactory:
     key = policy.lower().replace("_", "-")
     if key == "hold":
         return lambda scenario: make_hold_decisions(scenario.max_steps)
@@ -33,13 +71,16 @@ def _factory(policy: str, seed: int | None = None) -> PolicyFactory:
         return lambda scenario: make_random_valid_decisions(scenario, seed=seed)
     if key == "rule-aware":
         return make_rule_aware_decisions
+    if key == "risk-aware":
+        return _risk_aware_decisions
+    if key == "oracle-lite":
+        return lambda scenario: _oracle_lite_decisions(scenario, scenario_path=scenario_path)
     raise ValueError(f"Unknown baseline policy: {policy}")
 
 
 def run_baseline(policy: str, scenarios: str | Path, out: str | Path, seed: int | None = None) -> dict:
     out_path = Path(out)
     out_path.mkdir(parents=True, exist_ok=True)
-    factory = _factory(policy, seed=seed)
     run_config = RunConfig(
         model_name=f"baseline-{policy}",
         provider="baseline",
@@ -56,6 +97,7 @@ def run_baseline(policy: str, scenarios: str | Path, out: str | Path, seed: int 
         scenario_out = out_path / scenario_path.stem
         scenario_out.mkdir(parents=True, exist_ok=True)
         actions_path = scenario_out / "actions.jsonl"
+        factory = _factory(policy, seed=seed, scenario_path=scenario_path)
         _write_decisions(actions_path, factory(scenario))
         replay_scenario(str(scenario_path), str(actions_path), str(scenario_out))
     summary = build_leaderboard(str(out_path))

@@ -23,6 +23,8 @@ python -m lexcapital validate scenarios/mvp
 python -m lexcapital render-prompt --scenario scenarios/mvp/noctx_001_no_edge_hold.yaml --step 0
 python -m lexcapital run-suite --scenarios scenarios/mvp --adapter mock --model mock-hold --out runs/mock_hold
 python -m lexcapital run-baseline --policy rule-aware --scenarios scenarios/mvp --out runs/baselines/rule_aware
+python -m lexcapital run-baseline --policy risk-aware --scenarios scenarios/mvp --out runs/baselines/risk_aware
+python -m lexcapital run-baseline --policy oracle-lite --scenarios scenarios/mvp --out runs/baselines/oracle_lite
 python -m lexcapital publish-check --scenarios scenarios/mvp --out audits/publish_mvp
 python -m lexcapital score-dir runs/mock_hold
 pytest -q
@@ -51,6 +53,8 @@ lexcapital does **not** connect to real broker APIs, exchanges, wallets, or live
 - `python -m lexcapital run-baseline --policy hold --scenarios scenarios/mvp --out runs/baselines/hold`
 - `python -m lexcapital run-baseline --policy random-valid --seed 42 --scenarios scenarios/mvp --out runs/baselines/random_valid`
 - `python -m lexcapital run-baseline --policy rule-aware --scenarios scenarios/mvp --out runs/baselines/rule_aware`
+- `python -m lexcapital run-baseline --policy risk-aware --scenarios scenarios/mvp --out runs/baselines/risk_aware`
+- `python -m lexcapital run-baseline --policy oracle-lite --scenarios scenarios/mvp --out runs/baselines/oracle_lite`
 - `python -m lexcapital publish-check --scenarios scenarios/mvp --out audits/publish_mvp`
 - `python -m lexcapital score-dir runs/mock_hold`
 - `python -m lexcapital write-agent-template --out agent_eval.example.yaml`
@@ -132,6 +136,17 @@ pytest -q
 ```
 
 
+## v0.4 leaderboard protocol
+
+v0.4 writes leaderboard-ready artifacts for every suite or baseline run:
+
+- `results.json`: full machine-readable run output with per-scenario scores
+- `model_card.json`: provider/model/config/access boundary metadata
+- `leaderboard_row.json`: one normalized leaderboard submission row
+- `leaderboard.csv`: flat CSV row for aggregation
+
+The public baselines are `hold`, `random-valid`, `rule-aware`, `risk-aware`, and `oracle-lite`.
+
 ## v0.3 scenario audit and publish gate
 
 Use the audit and publish-check commands before expanding the benchmark or publishing a run:
@@ -143,9 +158,11 @@ python -m lexcapital publish-check --scenarios scenarios/mvp --out audits/publis
 
 The audit checks hidden-field leakage, HOLD replay safety, oracle/red sidecars, metadata coverage, provenance coverage, and category/difficulty/trap balance. It writes `audit_report.json` and `audit_summary.md`; publish-check writes `publish_report.json` and `publish_summary.md`.
 
-## v0.3 docs
+## v0.4 docs
 
-- `docs/benchmark_spec_v0.3.md`
+- `docs/benchmark_spec_v0.4.md`
+- `docs/leaderboard_schema_v0.4.md`
+- `docs/v0.4_release_notes.md`
 - `docs/scenario_authoring_guide.md`
 - `docs/eval_protocol.md`
 - `docs/scoring_rubric.md`
